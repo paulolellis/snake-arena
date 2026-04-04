@@ -842,8 +842,11 @@ class Menu:
 # ---------------------------------------------------------------------------
 def main():
     pygame.init()
-    info = pygame.display.Info()
+    # Grab desktop size before creating any window
+    desk_info = pygame.display.Info()
+    desk_w, desk_h = desk_info.current_w, desk_info.current_h
     default_w, default_h = 800, 660
+
     screen = pygame.display.set_mode((default_w, default_h), pygame.RESIZABLE)
     pygame.display.set_caption("Snake Arena")
     clock = pygame.time.Clock()
@@ -858,13 +861,17 @@ def main():
     state = "menu"
 
     def toggle_fullscreen():
+        """Use a borderless desktop-sized window instead of SDL FULLSCREEN
+        to avoid the macOS NSWindowStyleMaskFullScreen crash."""
         nonlocal screen, is_fullscreen
         if is_fullscreen:
             screen = pygame.display.set_mode((default_w, default_h), pygame.RESIZABLE)
             is_fullscreen = False
         else:
-            screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            # NOFRAME + desktop size = fake fullscreen, safe on macOS
+            screen = pygame.display.set_mode((desk_w, desk_h), pygame.NOFRAME)
             is_fullscreen = True
+        pygame.display.set_caption("Snake Arena")
         menu.screen = screen
         menu.fullscreen = is_fullscreen
 
@@ -881,7 +888,9 @@ def main():
                     if state == "playing":
                         state = "menu"
                         game = None
-                        # Restore window mode if needed
+                        # Drop back to windowed when returning to menu
+                        if is_fullscreen:
+                            toggle_fullscreen()
                     else:
                         running = False
 
